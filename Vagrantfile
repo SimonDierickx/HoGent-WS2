@@ -25,7 +25,7 @@ Vagrant.configure("2") do |config|
     # This is the base image for the VM - do not change this!
     server1.vm.box = "gusztavvargadr/windows-server-2022-standard-core"
     # Connect the second adapter to an internal network, do not configure IP (the provided IP is just a place holder)
-    server1.vm.network "private_network", ip: "192.168.24.11", auto_config: false
+    server1.vm.network "private_network", ip: "192.168.24.10", auto_config: false
     # Set the host name of the VM
     server1.vm.hostname = "server1"
     # VirtualBox specific configuration
@@ -44,7 +44,7 @@ Vagrant.configure("2") do |config|
   # Server 2
   config.vm.define "server2" do |server2|
     server2.vm.box = "gusztavvargadr/windows-server-2022-standard-core"
-    server2.vm.network "private_network", ip: "192.168.24.12", auto_config: false
+    server2.vm.network "private_network", ip: "192.168.24.11", auto_config: false
     server2.vm.hostname = "server2"
     server2.vm.provider "virtualbox" do |vb|
       vb.name = "server2"
@@ -57,7 +57,7 @@ Vagrant.configure("2") do |config|
   # Client
   config.vm.define "client" do |client|
     client.vm.box = "gusztavvargadr/windows-10-22h2-enterprise"
-    client.vm.network "private_network", ip: "192.168.24.13", auto_config: false
+    client.vm.network "private_network", ip: "192.168.24.12", auto_config: false
     client.vm.hostname = "client"
     client.vm.provider "virtualbox" do |vb|
       vb.name = "client"
