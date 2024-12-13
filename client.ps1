@@ -1,45 +1,39 @@
 # Values
-Write-Host "Setting variables."
-$firstname = "simon"
-$DomainName = "WS2-2425-$firstname.hogent"
-$DomainAdmin = "Vagrant"
-$IP = "192.168.24.13"
+Write-Host "Setting up variables."
+$LANG = "nl-BE"
+$IFNAME = "Ethernet 2"
+$RANGE = "192.168.24.0"
 $GW = "192.168.24.1"
-$DNS = "192.168.24.11"  
-$InterfaceName = "Ethernet"# "Ethernet 2" als je met Internal Network werkt
-$Password = ConvertTo-SecureString -AsPlainText "vagrant" -Force
-$Credential = New-Object System.Management.Automation.PSCredential -ArgumentList @($DomainAdmin, $Password)
+$DNS = "192.168.24.11"
+$DNS2 = "192.168.24.21"
+$NAME = "ws2-2425-simon.hogent"
+$USERNAME = "simon"
+$PASSWORD = "Secure!Passw0rd"
+$OU = "OU=gebruikers,DC=ws2-2425-simon,DC=hogent"
+$SECUREPASS = ConvertTo-SecureString $PASSWORD -AsPlainText -Force
+$CREDENTIAL = New-Object System.Management.Automation.PSCredential("$USERNAME@$NAME", $SECUREPASS)
 
-# Static IPv4 IP instellen
-New-NetIPAddress -InterfaceAlias $InterfaceName -IPAddress $IP -AddressFamily IPv4 -PrefixLength 24 -DefaultGateway $GW
-Set-DnsClientServerAddress -InterfaceAlias $InterfaceName -ServerAddresses $DNS
+$SF = "C:\vagrant"
+$LOCALPATH = "C:\Users\vagrant\shared_folder"
 
-# icmpv4 rule
-netsh advfirewall firewall add rule name="ping4" protocol=icmpv4:8,any dir=in action=allow
-netsh advfirewall firewall add rule name="ping4" protocol=icmpv4:8,any dir=out action=allow
+# Keyboard Layout
+Write-Output "Setting keyboard layout."
+Set-WinUserLanguageList -LanguageList $LANG -Force
+Write-Host "Keyboard layout configured to $LANG."
 
-# Kerberos
-# TCP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos TCP Inbound" -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow -Profile Domain
+# Copying shared folder locally
+Write-Host "Copying shared folder locally."
+New-Item -Path $LOCALPATH -ItemType Directory -Force
+Copy-Item -Path $SF\* -Destination $LOCALPATH -Recurse -Force
+Write-Output "Shared folder copied succesfully to $LOCALPATH."
 
-# UDP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos UDP Inbound" -Direction Inbound -Protocol UDP -LocalPort 88 -Action Allow -Profile Domain
-    
-# TCP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos TCP Outbound" -Direction Outbound -Protocol TCP -LocalPort 88 -Action Allow -Profile Domain
+# Setup IP with DHCP
+Write-Output "Configuring DHCP settings..."
+netsh interface ip set address name=$IFNAME source=dhcp
+netsh interface ip set dns name=$IFNAME source=dhcp
+Write-Host "DHCP configuration complete."
 
-# UDP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos UDP Outbound" -Direction Outbound -Protocol UDP -LocalPort 88 -Action Allow -Profile Domain
-
-# WinRM
-netsh advfirewall firewall add rule name="WinRM HTTP" protocol=TCP dir=in localport=5985 action=allow
-netsh advfirewall firewall add rule name="WinRM HTTPS" protocol=TCP dir=in localport=5986 action=allow
-
-netsh advfirewall firewall add rule name="WinRM HTTP" protocol=TCP dir=out localport=5985 action=allow
-netsh advfirewall firewall add rule name="WinRM HTTPS" protocol=TCP dir=out localport=5986 action=allow
-
-# Join the client to the domain
-Write-Host "Joining the domain."
-Add-Computer -DomainName $DomainName -Credential $Credential -Restart -Force
-
-Restart-Computer
+# Join domain
+Write-Host "Joining existing domain: $NAME."
+Add-Computer -DomainName $NAME -Credential $CREDENTIAL -Force -Restart
+Write-Output "System added to domain $NAME and will restart."

@@ -1,70 +1,37 @@
 ﻿# Variables
 Write-Host "Setting variables."
-$IP = "192.168.24.11"
+$LANG = "nl-BE"
+$IFNAME = "Ethernet 2"
 $GW = "192.168.24.1"
-$InterfaceName = "Ethernet"
-$name = "WS2-2425-simon.hogent"
-$netBios = "ws2425"
-$DNS2 = "192.168.24.12"
-$Password = ConvertTo-SecureString -AsPlainText "24Admin25" -Force
+$IP = "192.168.24.11"
+$SF = "C:\vagrant"
+$LOCALPATH = "C:\Users\administrator\shared_folder"
 
 # Keyboard Layout
-Write-Host "Setting keyboard layout."
-Set-WinUserLanguageList -LanguageList nl-BE -Force
+Write-Output "Configuring keyboard lay-out..."
+Set-WinUserLanguageList -LanguageList $LANG -Force
+Write-Host "Keyboard layout configured to $LANG."
+
+# Copying shared folder locally
+Write-Output "Copying shared folder to the local path."
+if (!(Test-Path $LOCALPATH)) {
+    New-Item -Path $LOCALPATH -ItemType Directory -Force
+    Write-Output "Local path created at $LOCALPATH."
+}
+Copy-Item -Path $SF\* -Destination $LOCALPATH -Recurse -Force
+Write-Host "Shared folder successfully copied to $LOCALPATH."
 
 # Setting up static IPv4 IP
-Write-Host "Setting up IPv4."
-New-NetIPAddress -InterfaceAlias $InterfaceName -IPAddress $IP -AddressFamily IPv4 -PrefixLength 24 -DefaultGateway $GW
-Set-DnsClientServerAddress -InterfaceAlias $InterfaceName -ServerAddresses $IP
+Write-Host "Configuring static IPv4 IP."
+New-NetIPAddress -InterfaceAlias $IFNAME -IPAddress $IP -PrefixLength 24 -DefaultGateway $GW
+Set-DnsClientServerAddress -InterfaceAlias $IFNAME -ServerAddresses $IP
+Write-Output "Static IP set to $IP for interface $IFNAME."
 
-# Install ADDS and DHCP
-Write-Host "Installing AD and DHCP."
-Install-WindowsFeature -Name AD-Domain-Services,DHCP -IncludeManagementTools -Verbose
+# Installing all necessary packages
+Write-Host "Installing required Windows features."
+Install-WindowsFeature -Name DHCP, AD-Domain-Services, DNS -IncludeManagementTools
+Write-Output "All required packages installed successfully."
 
-# Import ADDSDeployment module
-Write-Host "Importing module."
-Import-Module ADDSDeployment
-
-# Install forest
-Write-Host "Install forest."
-Install-ADDSForest `
-    -CreateDnsDelegation:$false `
-    -DomainMode "WinThreshold" `
-    -DomainName $name `
-    -DomainNetbiosName $netBios `
-    -ForestMode "WinThreshold" `
-    -InstallDns:$true `
-    -LogPath "C:\Windows\NTDS" `
-    -NoRebootOnCompletion:$true `
-    -SafeModeAdministratorPassword $Password `
-    -SysvolPath "C:\Windows\SYSVOL" `
-    -Force=$true
-
-# icmpv4 rule
-netsh advfirewall firewall add rule name="ping4" protocol=icmpv4:8,any dir=in action=allow
-netsh advfirewall firewall add rule name="ping4" protocol=icmpv4:8,any dir=out action=allow
-
-netsh advfirewall firewall add rule name="ping4" protocol=icmpv6:8,any dir=in action=allow
-netsh advfirewall firewall add rule name="ping4" protocol=icmpv6:8,any dir=out action=allow
-
-# Kerberos
-
-# TCP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos TCP Inbound" -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow -Profile Domain
-
-# UDP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos UDP Inbound" -Direction Inbound -Protocol UDP -LocalPort 88 -Action Allow -Profile Domain
-    
-# TCP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos TCP Outbound" -Direction Outbound -Protocol TCP -LocalPort 88 -Action Allow -Profile Domain
-
-# UDP Port 88:
-New-NetFirewallRule -DisplayName "Allow Kerberos UDP Outbound" -Direction Outbound -Protocol UDP -LocalPort 88 -Action Allow -Profile Domain
-
-# WinRM
-
-netsh advfirewall firewall add rule name="WinRM HTTP" protocol=TCP dir=in localport=5985 action=allow
-netsh advfirewall firewall add rule name="WinRM HTTPS" protocol=TCP dir=in localport=5986 action=allow
-
-Write-Host "Rebooting device."
-Restart-Computer
+# Rebooting
+Write-Host "Rebooting system to apply changes."
+Restart-Computer -Force
