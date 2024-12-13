@@ -1,0 +1,4 @@
+Voornaam;Achternaam;Initialen;Gebruikersnaam;Password;OU
+Simon;Dierickx;SD;Simon;Secure!Passw0rd;OU=gebruikers,DC=ws2-2425-simon,DC=hogent
+Pieter-Jan;Maenhaut;PM;Pieter-Jan;Secure!Passw0rd;OU=gebruikers,DC=ws2-2425-simon,DC=hogent
+Jan;Janssens;JJ;Jan;Secure!Passw0rd;OU=gebruikers,DC=ws2-2425-simon,DC=hogent
